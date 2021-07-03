@@ -5,7 +5,7 @@ import argparse
 import xlsxwriter
 
 from query import Query
-from statistics import count_queries
+from statistics import general_statistics
 
 
 def get_command_line_arguments():
@@ -54,31 +54,20 @@ def main():
   with open(queries_file_name, 'r') as file:
     queries = read_queries(file)
 
-  queries_count = count_queries(queries)
-
-  values_raw = list(queries_count.values())
-  labels_raw = list(queries_count.keys())
-
-  # discard entries after the first x entries
-  discard_after = None
-  if discard_after:
-    values = [*values_raw[:discard_after], sum(values_raw[discard_after:])]
-    labels = [*labels_raw[:discard_after], 'Other']
-  else: 
-    values = values_raw
-    labels = labels_raw
+  data = general_statistics(queries)
 
   # export
   workbook = xlsxwriter.Workbook(output_file_name)
   worksheet = workbook.add_worksheet('Count')
 
-  worksheet.write('A1', 'Name')
-  worksheet.write('B1', 'Times')
+  headers = ['Name', 'Times', 'Times Answered']
+  worksheet.write_row(0, 0, headers)
 
-  worksheet.write_column(1, 0, labels)
-  worksheet.write_column(1, 1, values)
+  worksheet.write_column(1, 0, [i.name for i in data])
+  worksheet.write_column(1, 1, [i.times for i in data])
+  worksheet.write_column(1, 2, [i.num_answered for i in data])
 
-  worksheet.autofilter(0, 0, len(values), 1)
+  worksheet.autofilter(0, 0, len(data), len(headers) - 1)
 
   workbook.close()
 
